@@ -1,6 +1,7 @@
 package edu.wmi.rsa;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
@@ -15,7 +16,8 @@ import static edu.wmi.rsa.Utils.modInv;
  * Created by lupus on 01.11.16.
  */
 @Component
-public class RSAMask {
+@Profile("alice")
+public class RSAMaskingService {
 
     private final RSAService rsaService;
     private BigInteger k;
@@ -24,7 +26,7 @@ public class RSAMask {
     private int blockSize;
 
     @Autowired
-    public RSAMask(RSAService rsaService) {
+    public RSAMaskingService(RSAService rsaService) {
         this.rsaService = rsaService;
         this.publicKey = (RSAPublicKey) rsaService.getSignPublicKey();
         this.blockSize = (getModulus().bitLength() / 8);
@@ -91,4 +93,5 @@ public class RSAMask {
         }
         return result;
     }
+
 }

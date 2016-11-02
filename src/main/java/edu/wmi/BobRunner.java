@@ -5,13 +5,16 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Profile;
 
+/**
+ * Created by lupus on 02.11.16.
+ */
 @SpringBootApplication
 @EnableAutoConfiguration
-@Profile({"!alice", "!bob"})
-public class DemoApplication {
+@Profile("bob")
+public class BobRunner {
+    public static void main(String[] args) {
+        SpringApplication.run(BobRunner.class, args);
+    }
 
-	public static void main(String[] args) {
-		SpringApplication.run(DemoApplication.class, args);
-	}
 
 }

@@ -1,6 +1,8 @@
 package edu.wmi.rsa;
 
 import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import static java.math.BigInteger.ONE;
 import static java.math.BigInteger.ZERO;
@@ -38,5 +40,12 @@ public class Utils {
             return t.mod(n);
     }
 
-
+    public static byte[] generateSHA1(byte[] input) {
+        try {
+            MessageDigest sha1 = MessageDigest.getInstance("SHA1");
+            return sha1.digest(input);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Cannot generate hash!");
+        }
+    }
 }

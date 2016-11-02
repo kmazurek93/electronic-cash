@@ -2,6 +2,7 @@ package edu.wmi.rsa;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.tomcat.util.buf.HexUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.stereotype.Component;
 import sun.security.rsa.RSAPrivateCrtKeyImpl;
 import sun.security.rsa.RSAPublicKeyImpl;
@@ -27,18 +28,35 @@ public class RSAService {
     private static final String KEYS_SIGN_ID_RSA = "keys/sign/id_rsa";
     private static final String KEYS_ENC_ID_RSA_PUB = "keys/enc/id_rsa.pub";
     private static final String KEYS_ENC_ID_RSA = "keys/enc/id_rsa";
-    public static final String RSA = "RSA/ECB/NoPadding";
+    public static final String RSA = "RSA/NONE/NoPadding";
 
     private KeyPair signingKeyPair;
     private KeyPair encryptKeyPair;
     private Cipher rsa;
     private Signature signature;
 
+    public KeyPair getSigningKeyPair() {
+        return signingKeyPair;
+    }
+
+    public void setSigningKeyPair(KeyPair signingKeyPair) {
+        this.signingKeyPair = signingKeyPair;
+    }
+
+    public KeyPair getEncryptKeyPair() {
+        return encryptKeyPair;
+    }
+
+    public void setEncryptKeyPair(KeyPair encryptKeyPair) {
+        this.encryptKeyPair = encryptKeyPair;
+    }
+
     public RSAService() {
+        Security.addProvider(new BouncyCastleProvider());
         try {
             this.encryptKeyPair = readKeys(KEYS_ENC_ID_RSA_PUB, KEYS_ENC_ID_RSA);
             this.signingKeyPair = readKeys(KEYS_SIGN_ID_RSA_PUB, KEYS_SIGN_ID_RSA);
-            this.rsa = Cipher.getInstance(RSA);
+            this.rsa = Cipher.getInstance(RSA, "BC");
             this.signature = Signature.getInstance("SHA1withRSA");
         } catch (Exception e) {
             throw new RuntimeException("Cannot initialize RSAService", e);
@@ -115,6 +133,5 @@ public class RSAService {
         }
         return result;
     }
-
 
 }
