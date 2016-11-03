@@ -2,6 +2,7 @@ package edu.wmi.rsa;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.tomcat.util.buf.HexUtils;
+import org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.stereotype.Component;
 import sun.security.rsa.RSAPrivateCrtKeyImpl;
@@ -13,6 +14,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.math.BigInteger;
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -28,7 +30,7 @@ public class RSAService {
     private static final String KEYS_SIGN_ID_RSA = "keys/sign/id_rsa";
     private static final String KEYS_ENC_ID_RSA_PUB = "keys/enc/id_rsa.pub";
     private static final String KEYS_ENC_ID_RSA = "keys/enc/id_rsa";
-    public static final String RSA = "RSA/NONE/NoPadding";
+    public static final String RSA = "RSA/ECB/NoPadding";
 
     private KeyPair signingKeyPair;
     private KeyPair encryptKeyPair;
@@ -56,7 +58,7 @@ public class RSAService {
         try {
             this.encryptKeyPair = readKeys(KEYS_ENC_ID_RSA_PUB, KEYS_ENC_ID_RSA);
             this.signingKeyPair = readKeys(KEYS_SIGN_ID_RSA_PUB, KEYS_SIGN_ID_RSA);
-            this.rsa = Cipher.getInstance(RSA, "BC");
+            this.rsa = Cipher.getInstance(RSA);
             this.signature = Signature.getInstance("SHA1withRSA");
         } catch (Exception e) {
             throw new RuntimeException("Cannot initialize RSAService", e);
@@ -134,4 +136,12 @@ public class RSAService {
         return result;
     }
 
+    public void createBCKeys() {
+        RSAPrivateCrtKeyImpl aPrivate = (RSAPrivateCrtKeyImpl) this.signingKeyPair.getPrivate();
+        BigInteger modulus = aPrivate.getModulus();
+        RSAPrivateCrtKeyParameters privateKey = new RSAPrivateCrtKeyParameters(modulus,
+                aPrivate.getPublicExponent(), aPrivate.getPrivateExponent(), aPrivate.getPrimeP(), aPrivate.getPrimeQ(),
+                aPrivate.getPrimeExponentP(), aPrivate.getPrimeExponentQ(), aPrivate.getCrtCoefficient());
+        
+    }
 }
