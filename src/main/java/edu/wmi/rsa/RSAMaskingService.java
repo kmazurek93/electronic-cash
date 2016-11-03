@@ -1,15 +1,14 @@
 package edu.wmi.rsa;
 
+import org.bouncycastle.crypto.engines.RSABlindingEngine;
+import org.bouncycastle.crypto.generators.RSABlindingFactorGenerator;
+import org.bouncycastle.crypto.params.RSABlindingParameters;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Random;
-
-import static edu.wmi.rsa.Utils.modInv;
 
 /**
  * Created by lupus on 01.11.16.
@@ -19,86 +18,28 @@ import static edu.wmi.rsa.Utils.modInv;
 public class RSAMaskingService {
 
     private final RSAService rsaService;
-    private BigInteger k;
-    private BigInteger kInv;
-    private RSAPublicKey publicKey;
-    private int blockSize;
-    private int maxSize;
+    private RSABlindingParameters rsaBlindingParameters;
+
     @Autowired
     public RSAMaskingService(RSAService rsaService) {
         this.rsaService = rsaService;
-        this.publicKey = (RSAPublicKey) rsaService.getSignPublicKey();
-        this.blockSize = (getModulus().bitLength() / 8);
-        this.maxSize = blockSize - 11;
     }
 
-    public byte[] mask(byte[] toMask) {
-        genMaskMultiplier();
-        BigInteger kPow = k.modPow(publicKey.getPublicExponent(), getModulus());
 
-        return doMaskingOrUnmasking(kPow, toMask);
-    }
-
-    public byte[] unMask(byte[] toUnmask) {
-        if (kInv == null) {
-            throw new IllegalArgumentException("How you mask the message?");
-        } else {
-            return doMaskingOrUnmasking(kInv, toUnmask);
+    public byte[] bcMaskingOrUnmasking(byte[] source, boolean masking) {
+        RSAKeyParameters bcVerifyKey = rsaService.createBCVerifyKey();
+        RSABlindingEngine rsaBlindingEngine = new RSABlindingEngine();
+        if (masking) {
+            generateBlindingFactor(bcVerifyKey);
         }
+        rsaBlindingEngine.init(masking, rsaBlindingParameters);
+        return rsaBlindingEngine.processBlock(source, 0, source.length);
     }
 
-    private void genMaskMultiplier() {
-        Random random = new SecureRandom();
-        int bitLength = getModulus().bitLength() / 2;
-        k = new BigInteger(bitLength, 10, random);
-        while (!k.gcd(getModulus()).equals(BigInteger.ONE)) {
-            k = new BigInteger(bitLength, 10, random);
-        }
-        kInv = modInv(k, getModulus());
-    }
-
-    private BigInteger getModulus() {
-        return publicKey.getModulus();
-    }
-
-//    private int countResultLength(byte[] toSign) {
-//        int length = toSign.length;
-//        return length / blockSize == 0 ? blockSize : length % blockSize == 0 ? length : (length / blockSize) * blockSize + blockSize;
-//    }
-
-//    private byte[] doMaskOrUnmask(BigInteger blindingFactor, byte source[]) {
-//        byte[] result = new byte[countResultLength(source)];
-//        byte[] block = new byte[blockSize];
-//        int blocksDone = 0;
-//        for (int i = 0; i < source.length; i++) {
-//            if ((i != 0 && i % blockSize == 0) || i == source.length - 1) {
-//                if (i == source.length - 1) block[i % blockSize] = source[i];
-//
-//                BigInteger a = new BigInteger(1, block);
-//                BigInteger maskedA = a.multiply(blindingFactor).mod(getModulus());
-//                byte[] src = maskedA.toByteArray();
-//                if (src.length > blockSize) {
-//                    int diff = src.length - blockSize;
-//                    System.arraycopy(src, diff, result, blocksDone * blockSize, src.length - diff);
-//
-//                } else {
-//                    System.arraycopy(src, 0, result, blocksDone * blockSize + (blockSize - src.length), src.length);
-//                }
-//                Arrays.fill(block, (byte) 0);
-//
-//                blocksDone++;
-//            }
-//            block[i % blockSize] = source[i];
-//        }
-//        return result;
-//    }
-
-    private byte[] doMaskingOrUnmasking(BigInteger blindingOrUnblindingFactor, byte[] source) {
-//        if(source.length > this.maxSize) {
-//            throw new IllegalArgumentException("size is to big for this key");
-//        }
-        BigInteger a = new BigInteger(1, source);
-        BigInteger maskedA = a.multiply(blindingOrUnblindingFactor).mod(getModulus());
-        return maskedA.toByteArray();
+    private void generateBlindingFactor(RSAKeyParameters bcVerifyKey) {
+        RSABlindingFactorGenerator blindingFactorGenerator = new RSABlindingFactorGenerator();
+        blindingFactorGenerator.init(bcVerifyKey);
+        BigInteger blindingFactor = blindingFactorGenerator.generateBlindingFactor();
+        this.rsaBlindingParameters = new RSABlindingParameters(bcVerifyKey, blindingFactor);
     }
 }

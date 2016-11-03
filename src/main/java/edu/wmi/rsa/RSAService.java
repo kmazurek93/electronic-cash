@@ -2,6 +2,8 @@ package edu.wmi.rsa;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.tomcat.util.buf.HexUtils;
+import org.bouncycastle.crypto.engines.RSAEngine;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.params.RSAPrivateCrtKeyParameters;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.stereotype.Component;
@@ -112,36 +114,40 @@ public class RSAService {
     }
 
     public byte[] signBlindly(byte[] masked) throws GeneralSecurityException {
-        Cipher cipher = Cipher.getInstance(RSA);
-        cipher.init(Cipher.ENCRYPT_MODE, this.signingKeyPair.getPrivate());
-        return cipher.doFinal(masked);
+        RSAEngine rsaEngine = new RSAEngine();
+        rsaEngine.init(true, createBCSigningKey());
+        return rsaEngine.processBlock(masked, 0, masked.length);
     }
 
-    public boolean verifyBlind(byte[] signed, byte[] msg) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-        Cipher cipher = Cipher.getInstance(RSA);
-        cipher.init(Cipher.DECRYPT_MODE, this.signingKeyPair.getPublic());
-        byte[] bytes = cipher.doFinal(signed);
-        msg = padMessageArray(msg, bytes.length);
-        return Arrays.equals(msg, bytes);
+    public boolean verifyBlind(byte[] signed, byte[] msgHash) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        RSAEngine rsaEngine = new RSAEngine();
+        rsaEngine.init(false, createBCVerifyKey());
+        byte[] bytes = rsaEngine.processBlock(signed, 0, signed.length);
+        return Arrays.equals(removeLeadingZeroes(bytes), removeLeadingZeroes(msgHash));
     }
 
-    private byte[] padMessageArray(byte[] msg, int length) {
-        byte[] result = new byte[length];
-        for (int i = 0; i < msg.length; i++) {
-            result[i] = msg[i];
+    private byte[] removeLeadingZeroes(byte[] msg) {
+        int i = 0;
+        for (i = 0; i < msg.length; i++) {
+            if (msg[i] != 0) break;
         }
-        for (int i = msg.length; i < length; i++) {
-            result[i] = 0;
-        }
-        return result;
+        byte[] out = new byte[msg.length - i];
+        System.arraycopy(msg, i, out, 0, msg.length - i);
+        return out;
     }
 
-    public void createBCKeys() {
+
+    private RSAPrivateCrtKeyParameters createBCSigningKey() {
         RSAPrivateCrtKeyImpl aPrivate = (RSAPrivateCrtKeyImpl) this.signingKeyPair.getPrivate();
         BigInteger modulus = aPrivate.getModulus();
-        RSAPrivateCrtKeyParameters privateKey = new RSAPrivateCrtKeyParameters(modulus,
+        return new RSAPrivateCrtKeyParameters(modulus,
                 aPrivate.getPublicExponent(), aPrivate.getPrivateExponent(), aPrivate.getPrimeP(), aPrivate.getPrimeQ(),
                 aPrivate.getPrimeExponentP(), aPrivate.getPrimeExponentQ(), aPrivate.getCrtCoefficient());
-        
+
+    }
+
+    public RSAKeyParameters createBCVerifyKey() {
+        RSAPrivateCrtKeyImpl aPrivate = (RSAPrivateCrtKeyImpl) this.signingKeyPair.getPrivate();
+        return new RSAKeyParameters(false, aPrivate.getModulus(), aPrivate.getPublicExponent());
     }
 }

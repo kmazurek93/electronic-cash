@@ -15,7 +15,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.GeneralSecurityException;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Created by lupus on 02.11.16.
@@ -31,26 +35,22 @@ public class AliceRunner {
         MessageGenerator messageGenerator = ctx.getBean(MessageGenerator.class);
         RSAService rsaService = ctx.getBean(RSAService.class);
         for (int i = 0; i < 10; i++) {
-            byte[] randomBytes = messageGenerator.getRandomBytes(72);
+            byte[] randomBytes = messageGenerator.getRandomBytes(512);
             System.out.println("Message: " + HexUtils.toHexString(randomBytes));
             byte[] hash = Utils.generateSHA1(randomBytes);
-            byte[] maskedHash = rsaMaskingService.mask(hash);
             System.out.println("Hash: " + HexUtils.toHexString(hash));
-            String maskedHashString = HexUtils.toHexString(maskedHash);
-            System.out.println("Masked hash: " + maskedHashString);
-            MaskedMessage model = new MaskedMessage(hash);
-
+            byte[] maskedHash = rsaMaskingService.bcMaskingOrUnmasking(hash, true);
+            System.out.println("Masked hash: " + HexUtils.toHexString(maskedHash));
             RestTemplate restTemplate = new RestTemplate();
-            BlindSignature blindSignature = restTemplate.postForEntity("http://localhost:8081/blindSign", model, BlindSignature.class).getBody();
-
-            byte[] signature = blindSignature.getSignature();
-            System.out.println("Signature: " + HexUtils.toHexString(signature));
-            byte[] unmaskedSignature = rsaMaskingService.unMask(signature);
-            System.out.println("Unmasked signature: " + HexUtils.toHexString(unmaskedSignature));
+            BlindSignature response = restTemplate.postForObject("http://localhost:8081/blindSign", new MaskedMessage(maskedHash), BlindSignature.class);
+            byte[] sig = response.getSignature();
+            System.out.println("Got sig: " + HexUtils.toHexString(sig));
             try {
-                boolean valid = rsaService.verifyBlind(unmaskedSignature, hash);
-                System.out.println("Verified: " + valid);
-            } catch (GeneralSecurityException e) {
+                byte[] unmasked = rsaMaskingService.bcMaskingOrUnmasking(sig, false);
+                System.out.println("Unmasked sig: " + HexUtils.toHexString(unmasked));
+                boolean b = rsaService.verifyBlind(unmasked, hash);
+                System.out.println("Verified positively: " + b);
+            } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
                 e.printStackTrace();
             }
         }
