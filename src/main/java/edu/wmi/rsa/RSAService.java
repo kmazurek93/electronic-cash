@@ -105,14 +105,6 @@ public class RSAService {
         return this.signature.verify(rsaSignature);
     }
 
-    public PublicKey getSignPublicKey() {
-        return this.signingKeyPair.getPublic();
-    }
-
-    public PublicKey getEncryptPublicKey() {
-        return this.encryptKeyPair.getPublic();
-    }
-
     public byte[] signBlindly(byte[] masked) throws GeneralSecurityException {
         RSAEngine rsaEngine = new RSAEngine();
         rsaEngine.init(true, createBCSigningKey());
@@ -127,7 +119,7 @@ public class RSAService {
     }
 
     private byte[] removeLeadingZeroes(byte[] msg) {
-        int i = 0;
+        int i;
         for (i = 0; i < msg.length; i++) {
             if (msg[i] != 0) break;
         }
