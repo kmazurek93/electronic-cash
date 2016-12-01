@@ -113,7 +113,7 @@ public class RSAService {
 
     public boolean verifyBlind(byte[] signed, byte[] msgHash) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         RSAEngine rsaEngine = new RSAEngine();
-        rsaEngine.init(false, createBCVerifyKey());
+        rsaEngine.init(false, getBCVerifyKey());
         byte[] bytes = rsaEngine.processBlock(signed, 0, signed.length);
         return Arrays.equals(removeLeadingZeroes(bytes), removeLeadingZeroes(msgHash));
     }
@@ -138,7 +138,7 @@ public class RSAService {
 
     }
 
-    public RSAKeyParameters createBCVerifyKey() {
+    public RSAKeyParameters getBCVerifyKey() {
         RSAPrivateCrtKeyImpl aPrivate = (RSAPrivateCrtKeyImpl) this.signingKeyPair.getPrivate();
         return new RSAKeyParameters(false, aPrivate.getModulus(), aPrivate.getPublicExponent());
     }

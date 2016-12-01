@@ -26,13 +26,13 @@ public class RSAMaskingService {
     }
 
 
-    public byte[] bcMaskingOrUnmasking(byte[] source, boolean masking) {
-        RSAKeyParameters bcVerifyKey = rsaService.createBCVerifyKey();
+    public byte[] bcMaskingOrUnmasking(byte[] source, boolean isMasking) {
+        RSAKeyParameters bcVerifyKey = rsaService.getBCVerifyKey();
         RSABlindingEngine rsaBlindingEngine = new RSABlindingEngine();
-        if (masking) {
+        if (isMasking) {
             generateBlindingFactor(bcVerifyKey);
         }
-        rsaBlindingEngine.init(masking, rsaBlindingParameters);
+        rsaBlindingEngine.init(isMasking, rsaBlindingParameters);
         return rsaBlindingEngine.processBlock(source, 0, source.length);
     }
 

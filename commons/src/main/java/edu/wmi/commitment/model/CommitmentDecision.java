@@ -5,8 +5,8 @@ package edu.wmi.commitment.model;
  */
 public class CommitmentDecision {
 
-    private byte[] r1bytes;
-    private byte[] hash;
+    public byte[] r1;
+    public byte[] hash;
 
     public byte[] getHash() {
         return hash;
@@ -16,12 +16,12 @@ public class CommitmentDecision {
         this.hash = hash;
     }
 
-    public byte[] getR1bytes() {
-        return r1bytes;
+    public byte[] getR1() {
+        return r1;
     }
 
-    public void setR1bytes(byte[] r1bytes) {
-        this.r1bytes = r1bytes;
+    public void setR1(byte[] r1) {
+        this.r1 = r1;
     }
 
 }

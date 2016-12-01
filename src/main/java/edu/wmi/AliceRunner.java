@@ -29,22 +29,31 @@ import java.security.NoSuchAlgorithmException;
 @Profile("alice")
 public class AliceRunner {
 
+    public static final String BOB_URL = "http://localhost:8081/blindSign";
+
     public static void main(String[] args) {
         ApplicationContext ctx = SpringApplication.run(AliceRunner.class, args);
         RSAMaskingService rsaMaskingService = ctx.getBean(RSAMaskingService.class);
         MessageGenerator messageGenerator = ctx.getBean(MessageGenerator.class);
         RSAService rsaService = ctx.getBean(RSAService.class);
         for (int i = 0; i < 10; i++) {
+
             byte[] randomBytes = messageGenerator.getRandomBytes(512);
             System.out.println("Message: " + HexUtils.toHexString(randomBytes));
+
             byte[] hash = Utils.generateSHA1(randomBytes);
             System.out.println("Hash: " + HexUtils.toHexString(hash));
+
             byte[] maskedHash = rsaMaskingService.bcMaskingOrUnmasking(hash, true);
             System.out.println("Masked hash: " + HexUtils.toHexString(maskedHash));
+
             RestTemplate restTemplate = new RestTemplate();
-            BlindSignature response = restTemplate.postForObject("http://localhost:8081/blindSign", new MaskedMessage(maskedHash), BlindSignature.class);
+            BlindSignature response = restTemplate
+                    .postForObject(BOB_URL, new MaskedMessage(maskedHash), BlindSignature.class);
+
             byte[] sig = response.getSignature();
             System.out.println("Got sig: " + HexUtils.toHexString(sig));
+
             try {
                 byte[] unmasked = rsaMaskingService.bcMaskingOrUnmasking(sig, false);
                 System.out.println("Unmasked sig: " + HexUtils.toHexString(unmasked));
