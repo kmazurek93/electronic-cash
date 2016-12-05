@@ -4,8 +4,7 @@ import edu.wmi.commitment.model.CommitmentDecision;
 import edu.wmi.commitment.model.FullCommitmentDecision;
 import edu.wmi.commitment.model.banknote.BanknoteModel;
 import edu.wmi.commitment.model.banknote.ByteArray;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.tomcat.util.buf.HexUtils;
+import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -15,10 +14,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.commons.lang3.StringUtils.join;
+import static org.apache.tomcat.util.buf.HexUtils.fromHexString;
+import static org.apache.tomcat.util.buf.HexUtils.toHexString;
 
 /**
  * Created by lupus on 10.11.16.
  */
+@Component
 public class BanknoteGenerator {
     public static final String MD_5 = "MD5";
     private SecureRandom secureRandom;
@@ -55,6 +58,7 @@ public class BanknoteGenerator {
         outcome.setLeftValues(leftDec.stream().map(ld -> new ByteArray(ld.decision)).collect(Collectors.toList()));
         outcome.setRightValues(rightDec.stream().map(rd -> new ByteArray(rd.decision)).collect(Collectors.toList()));
         outcome.setBanknoteModel(createBanknoteModel(banknoteValue, leftDec, rightDec, banknoteSerialNo));
+        outcome.setHash(md5.digest(outcome.getBanknoteModel().concatenateBytes()));
         return outcome;
     }
 
@@ -77,7 +81,7 @@ public class BanknoteGenerator {
         return banknoteModel;
     }
 
-    private byte[] xor(byte[] arr1, byte[] arr2) {
+    public static byte[] xor(byte[] arr1, byte[] arr2) {
         if (arr1.length != arr2.length) {
             throw new IllegalArgumentException("Not equal length");
         }
@@ -111,9 +115,9 @@ public class BanknoteGenerator {
     }
 
     private byte[] getBytesToHash(FullCommitmentDecision model) {
-        return HexUtils.fromHexString(
-                StringUtils.join(HexUtils.toHexString(model.r1),
-                        HexUtils.toHexString(model.r2),
-                        HexUtils.toHexString(model.decision)));
+        return fromHexString(
+                join(toHexString(model.r1),
+                        toHexString(model.r2),
+                        toHexString(model.decision)));
     }
 }

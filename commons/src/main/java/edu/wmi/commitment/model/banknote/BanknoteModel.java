@@ -14,6 +14,15 @@ public class BanknoteModel {
     private BigInteger value;
     private List<CommitmentDecision> leftDecisions;
     private List<CommitmentDecision> rightDecisions;
+    private byte[] signature;
+
+    public byte[] getSignature() {
+        return signature;
+    }
+
+    public void setSignature(byte[] signature) {
+        this.signature = signature;
+    }
 
     public byte[] getSerialNo() {
         return serialNo;

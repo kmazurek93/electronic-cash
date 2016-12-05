@@ -10,10 +10,7 @@ import org.springframework.stereotype.Component;
 import sun.security.rsa.RSAPrivateCrtKeyImpl;
 import sun.security.rsa.RSAPublicKeyImpl;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.math.BigInteger;
@@ -111,13 +108,12 @@ public class RSAService {
         return rsaEngine.processBlock(masked, 0, masked.length);
     }
 
-    public boolean verifyBlind(byte[] signed, byte[] msgHash) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+    public boolean verifyBlind(byte[] signed, byte[] msgHash) {
         RSAEngine rsaEngine = new RSAEngine();
         rsaEngine.init(false, getBCVerifyKey());
         byte[] bytes = rsaEngine.processBlock(signed, 0, signed.length);
         return Arrays.equals(removeLeadingZeroes(bytes), removeLeadingZeroes(msgHash));
     }
-
     private byte[] removeLeadingZeroes(byte[] msg) {
         int i;
         for (i = 0; i < msg.length; i++) {
