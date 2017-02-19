@@ -72,16 +72,16 @@ public class BanknoteVerifyingService {
         return true;
     }
 
-    private boolean verifyFullDecision(FullCommitmentDecision leftFull, CommitmentDecision left) {
-        if (!Arrays.equals(left.r1, leftFull.r1)) {
+    public boolean verifyFullDecision(FullCommitmentDecision full, CommitmentDecision partial) {
+        if (!Arrays.equals(partial.r1, full.r1)) {
             return false;
         }
-        if (!Arrays.equals(left.hash, leftFull.hash)) {
+        if (!Arrays.equals(partial.hash, full.hash)) {
             return false;
         }
-        String allBytes = join(toHexString(leftFull.r1), toHexString(leftFull.r2), toHexString(leftFull.decision));
+        String allBytes = join(toHexString(full.r1), toHexString(full.r2), toHexString(full.decision));
         byte[] digest = md5.digest(fromHexString(allBytes));
-        return Arrays.equals(digest, leftFull.hash);
+        return Arrays.equals(digest, full.hash);
     }
 
     private boolean verifyHash(GeneratedBanknoteWithValues b) {
@@ -95,7 +95,9 @@ public class BanknoteVerifyingService {
         BigInteger blindingFactor = b.getBlindingFactor();
         byte[] maskedHash = b.getMaskedHash();
         byte[] hash = b.getHash();
-        byte[] unmaskedHash = rsaMaskingService.unmaskHash(blindingFactor, maskedHash);
-        return Arrays.equals(unmaskedHash, hash);
+        byte[] maskedByBankUsingBF = rsaMaskingService.maskWith(hash, blindingFactor);
+        return Arrays.equals(maskedByBankUsingBF, maskedHash);
     }
+
+
 }

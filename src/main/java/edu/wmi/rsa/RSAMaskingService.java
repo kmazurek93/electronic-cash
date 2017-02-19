@@ -53,6 +53,13 @@ public class RSAMaskingService {
         rsaBlindingEngine.init(false, blindingParameters);
         return rsaBlindingEngine.processBlock(source, 0, source.length);
     }
+    public byte[] maskWith(byte[] source, BigInteger blindingFactor) {
+        RSAKeyParameters bcVerifyKey = rsaService.getBCVerifyKey();
+        RSABlindingEngine rsaBlindingEngine = new RSABlindingEngine();
+        RSABlindingParameters blindingParameters = new RSABlindingParameters(bcVerifyKey, blindingFactor);
+        rsaBlindingEngine.init(true, blindingParameters);
+        return rsaBlindingEngine.processBlock(source, 0, source.length);
+    }
     private void generateBlindingFactor(RSAKeyParameters bcVerifyKey) {
         RSABlindingFactorGenerator blindingFactorGenerator = new RSABlindingFactorGenerator();
         blindingFactorGenerator.init(bcVerifyKey);

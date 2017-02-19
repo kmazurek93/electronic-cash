@@ -1,10 +1,9 @@
 package edu.wmi;
 
-import edu.wmi.banknote.BanknoteFullRequest;
-import edu.wmi.banknote.BanknoteGenerator;
-import edu.wmi.banknote.BanknoteRequest;
-import edu.wmi.banknote.GeneratedBanknoteWithValues;
+import edu.wmi.banknote.*;
 import edu.wmi.blindsign.MessageGenerator;
+import edu.wmi.commitment.model.FullCommitmentDecision;
+import edu.wmi.commitment.model.banknote.BanknoteModel;
 import edu.wmi.commitment.model.banknote.ByteArray;
 import edu.wmi.rsa.RSAMaskingService;
 import edu.wmi.rsa.RSAService;
@@ -66,19 +65,42 @@ public class AliceRunner {
         banknoteFullRequest.setNinetyNineBanknotes(banknotes);
         ByteArray byteArray = restTemplate.postForObject(BR_2, banknoteFullRequest, ByteArray.class);
 
+        BanknoteModel toSignB = toSign.getBanknoteModel();
         if (byteArray == null) {
             out.println("ERROR");
         } else {
             byte[] signature = rsaMaskingService.unmaskHash(toSign.getBlindingFactor(), byteArray.value);
             out.println("Signature: " + toHexString(signature));
-            toSign.getBanknoteModel().setSignature(signature);
+            toSignB.setSignature(signature);
         }
         Boolean value = restTemplate.postForObject("http://localhost:8081/verifySignature",
                 of(
-                        "SIGNATURE", new ByteArray(toSign.getBanknoteModel().getSignature()),
+                        "SIGNATURE", new ByteArray(toSignB.getSignature()),
                         "HASH", new ByteArray(toSign.getHash())),
                 Boolean.class);
         out.println("Signature valid: " + value);
+
+        PayToken token = restTemplate.getForObject("http://localhost:8082/prePay", PayToken.class);
+        List<FullCommitmentDecision> decisions = newArrayList();
+        for(int i=0; i<100; i++) {
+            int j = token.getIntegers().get(i);
+            if(j == 0) {
+                decisions.add(toSign.getLeftDecisions().get(i));
+            } else {
+                decisions.add(toSign.getRightDecisions().get(i));
+            }
+        }
+        PayWebModel payWebModel = new PayWebModel();
+        payWebModel.setToken(token.getToken());
+        payWebModel.setFullDecisions(decisions);
+        payWebModel.setBanknoteModel(toSignB);
+        Boolean paid = restTemplate.postForObject("http://localhost:8082/pay", payWebModel, Boolean.class);
+        if(paid) {
+            out.println("Banknote committed");
+        } else {
+            out.println("Failed to pay");
+        }
+
     }
 
     @Bean
